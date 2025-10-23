@@ -1,623 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Carpet Measure</title>
-    <script src="https://cdn.jsdelivr.net/npm/@google/generative-ai@0.2.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/controls/OrbitControls.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/loaders/GLTFLoader.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
-            color: white;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            text-align: center;
-            padding: 20px 0;
-            margin-bottom: 30px;
-        }
-        
-        h1 {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
-        
-        .ar-view {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-        }
-        
-        .view-container {
-            position: relative;
-            width: 100%;
-            height: 400px;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #000;
-            margin-bottom: 20px;
-        }
-        
-        #arViewport {
-            width: 100%;
-            height: 100%;
-        }
-        
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-        
-        button {
-            padding: 12px 25px;
-            border: none;
-            border-radius: 50px;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        button:active {
-            transform: translateY(1px);
-        }
-        
-        button.secondary {
-            background: linear-gradient(135deg, #ff7e5f, #feb47b);
-        }
-        
-        .measurement-results {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-        }
-        
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-        }
-        
-        .result-card {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .result-value {
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 10px 0;
-            color: #4fc3f7;
-        }
-        
-        .result-label {
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4caf50;
-            animation: pulse 2s infinite;
-        }
-        
-        .status-dot.scanning {
-            background: #ff9800;
-        }
-        
-        .status-dot.processing {
-            background: #2196f3;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        
-        .instructions {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            backdrop-filter: blur(10px);
-            margin-top: 30px;
-        }
-        
-        .instructions h2 {
-            margin-bottom: 15px;
-        }
-        
-        .steps {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        
-        .step {
-            display: flex;
-            gap: 15px;
-            align-items: flex-start;
-        }
-        
-        .step-number {
-            background: linear-gradient(135deg, #6a11cb, #2575fc);
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            font-weight: bold;
-        }
-        
-        .tech-info {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-        
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2.2rem;
-            }
-            
-            .controls {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            button {
-                width: 100%;
-                max-width: 300px;
-            }
-            
-            .results-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AR Carpet Measure (Real)</title>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.157.0/build/three.module.js';
+import { ARButton } from 'https://cdn.jsdelivr.net/npm/three@0.157.0/examples/jsm/webxr/ARButton.js';
+
+let camera, scene, renderer;
+let reticle;
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let points = [];
+
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.xr.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  // Lighting
+  const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+  light.position.set(0.5, 1, 0.25);
+  scene.add(light);
+
+  // Reticle (for placement)
+  const ringGeo = new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+  reticle = new THREE.Mesh(ringGeo, ringMat);
+  reticle.matrixAutoUpdate = false;
+  reticle.visible = false;
+  scene.add(reticle);
+
+  // Add AR button
+  const arButton = ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] });
+  document.body.appendChild(arButton);
+
+  // Tap to place measurement points
+  window.addEventListener('click', () => {
+    if (reticle.visible) {
+      const point = reticle.position.clone();
+      const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.01, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xff0000 })
+      );
+      sphere.position.copy(point);
+      scene.add(sphere);
+      points.push(point);
+      if (points.length === 2) {
+        measureDistance(points[0], points[1]);
+        points = [];
+      }
+    }
+  });
+
+  window.addEventListener('resize', onWindowResize);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function measureDistance(p1, p2) {
+  const distance = p1.distanceTo(p2);
+  alert(`Measured distance: ${(distance).toFixed(2)} meters`);
+}
+
+function animate() {
+  renderer.setAnimationLoop(render);
+}
+
+function render(timestamp, frame) {
+  if (frame) {
+    const referenceSpace = renderer.xr.getReferenceSpace();
+    const session = renderer.xr.getSession();
+
+    if (hitTestSourceRequested === false) {
+      session.requestReferenceSpace('viewer').then(function (refSpace) {
+        session.requestHitTestSource({ space: refSpace }).then(function (source) {
+          hitTestSource = source;
+        });
+      });
+
+      session.addEventListener('end', function () {
+        hitTestSourceRequested = false;
+        hitTestSource = null;
+      });
+
+      hitTestSourceRequested = true;
+    }
+
+    if (hitTestSource) {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+      } else {
+        reticle.visible = false;
+      }
+    }
+  }
+
+  renderer.render(scene, camera);
+}
+</script>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; background: #000; color: white; }
+  button { position: absolute; top: 20px; left: 20px; z-index: 2; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>AR Carpet Measure</h1>
-            <p class="subtitle">Use augmented reality and AI to accurately measure carpets and floor surfaces</p>
-        </header>
-        
-        <div class="app-container">
-            <section class="ar-view">
-                <h2>AR Measurement View</h2>
-                <div class="view-container">
-                    <div id="arViewport">
-                        <!-- AR visualization will be rendered here -->
-                        <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #aaa; flex-direction: column; gap: 15px;">
-                            <div style="font-size: 3rem;">📱</div>
-                            <div>Camera view will appear here</div>
-                            <div style="font-size: 0.9rem; text-align: center; max-width: 300px;">
-                                Click "Start AR Session" to begin measuring your carpet
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button id="startAR">
-                        <span>📱</span> Start AR Session
-                    </button>
-                    <button id="scanArea" class="secondary" disabled>
-                        <span>📐</span> Scan Area
-                    </button>
-                    <button id="detectEdges" class="secondary" disabled>
-                        <span>🔍</span> Detect Edges with AI
-                    </button>
-                    <button id="calculate" class="secondary" disabled>
-                        <span>🧮</span> Calculate Measurements
-                    </button>
-                </div>
-                
-                <div class="status-indicator">
-                    <div class="status-dot" id="statusDot"></div>
-                    <span id="statusText">Ready to start AR session</span>
-                </div>
-            </section>
-            
-            <section class="measurement-results">
-                <div class="results-header">
-                    <h2>Measurement Results</h2>
-                    <button id="saveResults" class="secondary" disabled>
-                        <span>💾</span> Save Results
-                    </button>
-                </div>
-                
-                <div class="results-grid">
-                    <div class="result-card">
-                        <div class="result-label">Length</div>
-                        <div class="result-value" id="lengthValue">--</div>
-                        <div class="result-label">meters</div>
-                    </div>
-                    
-                    <div class="result-card">
-                        <div class="result-label">Width</div>
-                        <div class="result-value" id="widthValue">--</div>
-                        <div class="result-label">meters</div>
-                    </div>
-                    
-                    <div class="result-card">
-                        <div class="result-label">Area</div>
-                        <div class="result-value" id="areaValue">--</div>
-                        <div class="result-label">square meters</div>
-                    </div>
-                    
-                    <div class="result-card">
-                        <div class="result-label">Perimeter</div>
-                        <div class="result-value" id="perimeterValue">--</div>
-                        <div class="result-label">meters</div>
-                    </div>
-                </div>
-            </section>
-            
-            <section class="instructions">
-                <h2>How to Use the AR Carpet Measure App</h2>
-                <div class="steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <strong>Start AR Session</strong> - Allow camera access and point your device at the floor surface you want to measure.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <strong>Scan Area</strong> - Slowly move your device around the edges of the carpet to capture its dimensions.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <strong>Detect Edges</strong> - Our AI (Gemini) will analyze the camera feed to identify carpet edges and boundaries.
-                        </div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-content">
-                            <strong>Calculate</strong> - Get precise measurements of length, width, area, and perimeter of your carpet.
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </div>
-        
-        <div class="tech-info">
-            <div>Powered by Gemini AI & Three.js AR</div>
-            <div>Accurate to within 2% of actual measurements</div>
-        </div>
-    </div>
-
-    <script>
-        // DOM Elements
-        const startARBtn = document.getElementById('startAR');
-        const scanAreaBtn = document.getElementById('scanArea');
-        const detectEdgesBtn = document.getElementById('detectEdges');
-        const calculateBtn = document.getElementById('calculate');
-        const saveResultsBtn = document.getElementById('saveResults');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        
-        // Measurement result elements
-        const lengthValue = document.getElementById('lengthValue');
-        const widthValue = document.getElementById('widthValue');
-        const areaValue = document.getElementById('areaValue');
-        const perimeterValue = document.getElementById('perimeterValue');
-        
-        // App State
-        let arSessionActive = false;
-        let scanningInProgress = false;
-        let edgesDetected = false;
-        
-        // Mock Gemini AI integration
-        const geminiAI = {
-            detectEdges: function(imageData) {
-                return new Promise((resolve) => {
-                    // Simulate AI processing time
-                    setTimeout(() => {
-                        // Mock edge detection results
-                        const mockEdges = {
-                            success: true,
-                            edges: [
-                                { x: 0.1, y: 0.1 },
-                                { x: 0.9, y: 0.1 },
-                                { x: 0.9, y: 0.8 },
-                                { x: 0.1, y: 0.8 }
-                            ],
-                            confidence: 0.92
-                        };
-                        resolve(mockEdges);
-                    }, 2000);
-                });
-            },
-            
-            calculateMeasurements: function(edges) {
-                return new Promise((resolve) => {
-                    // Simulate calculation time
-                    setTimeout(() => {
-                        // Mock measurements based on edges
-                        const length = (3.5 + Math.random() * 0.5).toFixed(2);
-                        const width = (2.5 + Math.random() * 0.3).toFixed(2);
-                        const area = (parseFloat(length) * parseFloat(width)).toFixed(2);
-                        const perimeter = (2 * (parseFloat(length) + parseFloat(width))).toFixed(2);
-                        
-                        resolve({
-                            length: length,
-                            width: width,
-                            area: area,
-                            perimeter: perimeter
-                        });
-                    }, 1500);
-                });
-            }
-        };
-        
-        // Event Listeners
-        startARBtn.addEventListener('click', startARSession);
-        scanAreaBtn.addEventListener('click', scanArea);
-        detectEdgesBtn.addEventListener('click', detectEdgesWithAI);
-        calculateBtn.addEventListener('click', calculateMeasurements);
-        saveResultsBtn.addEventListener('click', saveResults);
-        
-        // Functions
-        function startARSession() {
-            updateStatus('Starting AR session...', 'scanning');
-            
-            // In a real app, this would initialize the camera and AR scene
-            setTimeout(() => {
-                arSessionActive = true;
-                scanAreaBtn.disabled = false;
-                updateStatus('AR session active. Move device to scan area.', 'scanning');
-                
-                // Update AR viewport visualization
-                const arViewport = document.getElementById('arViewport');
-                arViewport.innerHTML = `
-                    <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(45deg, #1a1a2e, #16213e); overflow: hidden;">
-                        <div style="position: absolute; top: 20%; left: 15%; width: 70%; height: 60%; border: 2px dashed #4fc3f7; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: #4fc3f7;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem;">📏</div>
-                                <div>Point at carpet area</div>
-                            </div>
-                        </div>
-                        <div style="position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: #aaa; font-size: 0.9rem;">
-                            Move device slowly around the edges
-                        </div>
-                    </div>
-                `;
-            }, 2000);
-        }
-        
-        function scanArea() {
-            if (!arSessionActive) return;
-            
-            scanningInProgress = true;
-            detectEdgesBtn.disabled = false;
-            updateStatus('Scanning area... Move device around edges', 'scanning');
-            
-            // Simulate scanning process
-            setTimeout(() => {
-                scanningInProgress = false;
-                updateStatus('Area scanned successfully. Ready for edge detection.', 'processing');
-            }, 3000);
-        }
-        
-        function detectEdgesWithAI() {
-            if (!arSessionActive || scanningInProgress) return;
-            
-            updateStatus('Detecting edges with AI...', 'processing');
-            detectEdgesBtn.disabled = true;
-            
-            // In a real app, we would capture image data from the camera
-            const mockImageData = "mock-image-data";
-            
-            geminiAI.detectEdges(mockImageData)
-                .then(result => {
-                    if (result.success) {
-                        edgesDetected = true;
-                        calculateBtn.disabled = false;
-                        updateStatus('Edges detected with ' + (result.confidence * 100) + '% confidence', 'processing');
-                        
-                        // Visualize detected edges in AR view
-                        const arViewport = document.getElementById('arViewport');
-                        arViewport.innerHTML = `
-                            <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(45deg, #1a1a2e, #16213e); overflow: hidden;">
-                                <div style="position: absolute; top: 20%; left: 15%; width: 70%; height: 60%; border: 2px solid #4fc3f7; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: #4fc3f7;">
-                                    <div style="text-align: center;">
-                                        <div style="font-size: 2rem;">✅</div>
-                                        <div>Edges Detected</div>
-                                    </div>
-                                </div>
-                                <div style="position: absolute; top: 20%; left: 15%; width: 70%; height: 60%;">
-                                    <div style="position: absolute; top: 0; left: 0; width: 10px; height: 10px; background: #4fc3f7; border-radius: 50%;"></div>
-                                    <div style="position: absolute; top: 0; right: 0; width: 10px; height: 10px; background: #4fc3f7; border-radius: 50%;"></div>
-                                    <div style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: #4fc3f7; border-radius: 50%;"></div>
-                                    <div style="position: absolute; bottom: 0; left: 0; width: 10px; height: 10px; background: #4fc3f7; border-radius: 50%;"></div>
-                                </div>
-                                <div style="position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: #4fc3f7; font-size: 0.9rem;">
-                                    AI detected carpet boundaries
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        updateStatus('Edge detection failed. Try scanning again.', 'scanning');
-                        detectEdgesBtn.disabled = false;
-                    }
-                })
-                .catch(error => {
-                    console.error('Edge detection error:', error);
-                    updateStatus('Error in edge detection. Please try again.', 'scanning');
-                    detectEdgesBtn.disabled = false;
-                });
-        }
-        
-        function calculateMeasurements() {
-            if (!edgesDetected) return;
-            
-            updateStatus('Calculating measurements...', 'processing');
-            calculateBtn.disabled = true;
-            
-            // Mock edges data
-            const mockEdges = [
-                { x: 0.1, y: 0.1 },
-                { x: 0.9, y: 0.1 },
-                { x: 0.9, y: 0.8 },
-                { x: 0.1, y: 0.8 }
-            ];
-            
-            geminiAI.calculateMeasurements(mockEdges)
-                .then(measurements => {
-                    // Update UI with measurements
-                    lengthValue.textContent = measurements.length;
-                    widthValue.textContent = measurements.width;
-                    areaValue.textContent = measurements.area;
-                    perimeterValue.textContent = measurements.perimeter;
-                    
-                    saveResultsBtn.disabled = false;
-                    updateStatus('Measurements calculated successfully!', 'processing');
-                    
-                    // Update AR view with measurements
-                    const arViewport = document.getElementById('arViewport');
-                    arViewport.innerHTML = `
-                        <div style="position: relative; width: 100%; height: 100%; background: linear-gradient(45deg, #1a1a2e, #16213e); overflow: hidden;">
-                            <div style="position: absolute; top: 20%; left: 15%; width: 70%; height: 60%; border: 2px solid #4fc3f7; border-radius: 10px; display: flex; justify-content: center; align-items: center; color: #4fc3f7;">
-                                <div style="text-align: center;">
-                                    <div style="font-size: 1.5rem; margin-bottom: 10px;">${measurements.area} m²</div>
-                                    <div>${measurements.length}m × ${measurements.width}m</div>
-                                </div>
-                            </div>
-                            <div style="position: absolute; top: 20%; left: 15%; width: 70%; height: 60%;">
-                                <div style="position: absolute; top: 50%; left: 0; transform: translateY(-50%); width: 100%; text-align: center; color: #4fc3f7; font-size: 0.8rem;">
-                                    ${measurements.width}m
-                                </div>
-                                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%) rotate(90deg); transform-origin: center; color: #4fc3f7; font-size: 0.8rem;">
-                                    ${measurements.length}m
-                                </div>
-                            </div>
-                            <div style="position: absolute; bottom: 20px; left: 0; width: 100%; text-align: center; color: #4fc3f7; font-size: 0.9rem;">
-                                Measurement complete
-                            </div>
-                        </div>
-                    `;
-                })
-                .catch(error => {
-                    console.error('Calculation error:', error);
-                    updateStatus('Error calculating measurements. Please try again.', 'scanning');
-                    calculateBtn.disabled = false;
-                });
-        }
-        
-        function saveResults() {
-            updateStatus('Saving results...', 'processing');
-            
-            // In a real app, this would save to local storage or send to a server
-            setTimeout(() => {
-                updateStatus('Results saved successfully!', 'processing');
-                
-                // Show confirmation
-                alert('Measurement results saved successfully!');
-            }, 1000);
-        }
-        
-        function updateStatus(message, state) {
-            statusText.textContent = message;
-            
-            // Reset classes
-            statusDot.className = 'status-dot';
-            
-            // Add state class if provided
-            if (state) {
-                statusDot.classList.add(state);
-            }
-        }
-        
-        // Initialize Three.js scene for AR visualization (simplified for this demo)
-        function initARScene() {
-            // In a real implementation, this would set up Three.js scene, camera, and controls
-            console.log("AR Scene initialized (simulated)");
-        }
-        
-        // Initialize the app
-        initARScene();
-    </script>
+  <div style="position:absolute;bottom:10px;width:100%;text-align:center;color:#fff;">
+    Tap two points on surface to measure distance (m)
+  </div>
 </body>
 </html>
